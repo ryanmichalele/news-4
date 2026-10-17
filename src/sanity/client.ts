@@ -33,11 +33,11 @@ function toContent<T>(payload: ContentPayload): LoadedContent<T> {
  *
  * The HTTP cache is bypassed so a Studio edit is never hidden by a stale
  * intermediate. There is deliberately no If-None-Match / 304 path: the
- * response is only ~13KB, and Netlify rewrites response ETags with client
- * cache-validation suffixes, which made conditional matching unreliable — a
- * changed payload could be answered with "not modified" and the update
- * silently lost. Always fetching is both simpler and correct; the poller
- * compares content itself and skips re-rendering when nothing moved.
+ * response is only ~13KB, and conditional matching through intermediate
+ * proxies proved unreliable — a changed payload could be answered with
+ * "not modified" and the update silently lost. Always fetching is both
+ * simpler and correct; the poller compares content itself and skips
+ * re-rendering when nothing moved.
  *
  * Returns null on failure so the caller keeps showing what it already has.
  */
