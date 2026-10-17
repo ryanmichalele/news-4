@@ -12,5 +12,11 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/content"
+  to = "/.netlify/functions/content"
+  status = 200
+  force = true
+
 [build.environment]
   NODE_VERSION = "24"

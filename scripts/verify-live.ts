@@ -4,7 +4,7 @@
  * resolution the browser performs, then counts what a visitor would see.
  */
 
-const SITE = process.argv[2] || "https://cnn-news-live.netlify.app";
+const SITE = process.argv[2] || "https://cnn-news-netlify.netlify.app";
 
 const OLD = ["Edward Jones", "Louisiana", "Beau Wilson"];
 const NEW = ["Wells Fargo", "Texas", "Dana Reyes"];

@@ -11,7 +11,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     // Sanity Studio reads project config from these at build time.
-    "process.env.SANITY_STUDIO_PROJECT_ID": JSON.stringify(process.env.SANITY_STUDIO_PROJECT_ID || "tcitfba9"),
+    "process.env.SANITY_STUDIO_PROJECT_ID": JSON.stringify(process.env.SANITY_STUDIO_PROJECT_ID || "c558ki6i"),
     "process.env.SANITY_STUDIO_DATASET": JSON.stringify(process.env.SANITY_STUDIO_DATASET || "production"),
   },
   resolve: {
