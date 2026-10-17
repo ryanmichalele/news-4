@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import Turnstile from "./components/Turnstile";
+import { TURNSTILE_SITE_KEY } from "./config";
 import heroArrest from "./assets/hero-arrest.jpg";
 import { EntityProvider, EntityText } from "./sanity/EntityText";
 import { useStoryContent } from "./sanity/useStoryContent";
@@ -10,23 +12,25 @@ type Status = "idle" | "submitting" | "success" | "error";
 function AppShell() {
   const { article } = useStoryContent();
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
   const doubledTicker = [...article.tickerItems, ...article.tickerItems];
 
   const handleSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (status === "submitting") return;
+    if (!turnstileToken || status === "submitting") return;
 
     setStatus("submitting");
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, token: turnstileToken }),
       });
       if (!res.ok) throw new Error(`subscribe failed: ${res.status}`);
       setEmail("");
+      setTurnstileToken("");
       setStatus("success");
     } catch {
       setStatus("error");
@@ -442,12 +446,28 @@ function AppShell() {
                 />
                 <button
                   type="submit"
-                  disabled={status === "submitting"}
+                  disabled={status === "submitting" || !turnstileToken}
                   className="bg-red-600 px-5 py-3 text-xs font-black uppercase tracking-[0.35em] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-zinc-400"
                 >
                   {status === "submitting" ? "Sending" : "Notify me"}
                 </button>
               </div>
+
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                onVerify={(token) => {
+                  setTurnstileToken(token);
+                  setStatus("idle");
+                }}
+                onExpire={() => {
+                  setTurnstileToken("");
+                  setStatus("idle");
+                }}
+                onError={() => {
+                  setTurnstileToken("");
+                  setStatus("error");
+                }}
+              />
 
               <p
                 aria-live="polite"

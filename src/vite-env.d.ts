@@ -19,3 +19,11 @@ declare module "*.webp" {
   const src: string;
   export default src;
 }
+
+interface ImportMetaEnv {
+  readonly VITE_TURNSTILE_SITE_KEY?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
