@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { fallbackContent, loadContent } from "./client";
+import { useEffect, useRef, useState } from "react";
+import { fallbackContent, loadContent, type LoadedContent } from "./client";
 import { buildEntityMap, FALLBACK_SETTINGS, type EntityMap } from "./resolveEntities";
 import { staticArticle, type StaticArticle } from "@/data/fallback";
 
@@ -9,11 +9,24 @@ type ContentState = {
   loading: boolean;
 };
 
-const initialState: ContentState = {
-  article: staticArticle,
-  entities: buildEntityMap(FALLBACK_SETTINGS),
-  loading: true,
-};
+export type InitialContent = LoadedContent<Partial<StaticArticle>> | null;
+
+function seedState(initial?: InitialContent): ContentState {
+  // Without a preload there is nothing authentic to show yet, so keep the
+  // bundled fallback and stay in the loading state until the first poll lands.
+  if (!initial) {
+    return {
+      article: staticArticle,
+      entities: buildEntityMap(FALLBACK_SETTINGS),
+      loading: true,
+    };
+  }
+  return {
+    article: { ...staticArticle, ...(initial.article ?? {}) },
+    entities: initial.entities,
+    loading: false,
+  };
+}
 
 /**
  * Poll cadence.
@@ -25,14 +38,20 @@ const initialState: ContentState = {
 const POLL_MS = 400;
 
 /**
- * Loads CMS content once, then polls for updates so a Studio edit shows up on
- * an open page without a manual refresh.
+ * Keeps the page on the latest CMS content.
+ *
+ * `initial` is the payload fetched before the first render (see main.tsx). When
+ * present it becomes the initial state, so the editor's copy is on screen from
+ * the first frame with no fallback-then-swap flicker. Polling still runs after
+ * mount so further Studio edits appear on an open page without a manual
+ * refresh.
  *
  * Falls back to the bundled static article whenever Sanity is unreachable,
  * empty or missing fields, so the page always renders.
  */
-export function useStoryContent(): ContentState {
-  const [state, setState] = useState<ContentState>(initialState);
+export function useStoryContent(initial?: InitialContent): ContentState {
+  const [state, setState] = useState<ContentState>(() => seedState(initial));
+  const preloaded = useRef(Boolean(initial));
 
   useEffect(() => {
     let active = true;
@@ -52,15 +71,21 @@ export function useStoryContent(): ContentState {
 
     const poll = async () => {
       const result = await loadContent<Partial<StaticArticle>>();
-      // null means unchanged (304) or a failed request — either way, keep
-      // showing what we have and try again shortly.
+      // null means a failed request — keep showing what we have and try again
+      // shortly.
       if (result) apply(result);
       if (active) timer = setTimeout(poll, POLL_MS);
     };
 
-    // Start polling immediately so fresh data fetches right away.
-    // Initial state keeps loading: true until the first poll completes.
-    poll();
+    // Preloaded content is already on screen, so wait one interval before the
+    // first background poll rather than immediately re-fetching the same bytes.
+    if (preloaded.current) {
+      timer = setTimeout(poll, POLL_MS);
+    } else {
+      // Nothing authentic yet; start polling immediately so fresh data fetches
+      // right away.
+      poll();
+    }
 
     // Don't burn cycles on a background tab, but refresh the moment the
     // user comes back so they see the latest without waiting.

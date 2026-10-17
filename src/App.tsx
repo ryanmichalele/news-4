@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Turnstile from "./components/Turnstile";
 import { TURNSTILE_SITE_KEY } from "./config";
 import heroArrest from "./assets/hero-arrest.jpg";
 import { EntityProvider, EntityText } from "./sanity/EntityText";
-import { useStoryContent } from "./sanity/useStoryContent";
+import { useStoryContent, type InitialContent } from "./sanity/useStoryContent";
+import { resolveEntities } from "./sanity/resolveEntities";
+import type { StaticArticle } from "./data/fallback";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-function AppShell() {
-  const { article } = useStoryContent();
+function AppShell({ article }: { article: StaticArticle }) {
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -489,11 +490,35 @@ function AppShell() {
   );
 }
 
-export default function App() {
-  const { entities } = useStoryContent();
+export default function App({
+  initialContent,
+}: {
+  initialContent?: InitialContent;
+}) {
+  const { article, entities } = useStoryContent(initialContent);
+
+  // Keep the tab title and meta description in step with the CMS copy, run
+  // through the same entity substitution the page body uses.
+  const resolvedTitle = useMemo(
+    () => resolveEntities(article.title, entities),
+    [article.title, entities],
+  );
+  const resolvedDescription = useMemo(
+    () => resolveEntities(article.dek, entities),
+    [article.dek, entities],
+  );
+
+  useLayoutEffect(() => {
+    if (resolvedTitle) document.title = resolvedTitle;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta && resolvedDescription) {
+      meta.setAttribute("content", resolvedDescription);
+    }
+  }, [resolvedTitle, resolvedDescription]);
+
   return (
     <EntityProvider entities={entities}>
-      <AppShell />
+      <AppShell article={article} />
     </EntityProvider>
   );
 }

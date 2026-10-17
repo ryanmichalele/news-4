@@ -32,7 +32,11 @@ const client = createClient({
   dataset,
   apiVersion: "2024-01-01",
   token: process.env.SANITY_READ_TOKEN,
-  useCdn: true,
+  // Live API, not the cached API CDN. The CDN caches authenticated responses
+  // (segmented per token) and serves them for a short window, so a Studio edit
+  // would keep returning the previous payload. This proxy exists precisely to
+  // expose edits instantly, so freshness wins over the CDN read savings.
+  useCdn: false,
 });
 
 /**
